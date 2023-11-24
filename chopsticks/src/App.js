@@ -1,10 +1,10 @@
 import './App.css';
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import {useRef} from 'react';
-import Hand from './components/Hand.js';
+import React, { createContext, useState, useEffect } from 'react';
 import Player from './components/Player.js';
 
-// logic for chopsticks game
+export const GameContext = createContext();
+
+// logic for chopsticks gamee
 
 export default function Game(){
   // game states and constants
@@ -18,7 +18,6 @@ export default function Game(){
   const [prevHands, setPrevHands] = useState([]); // for undoing
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState(null);
-  const [mode, setMode] = useState(0); // attack, split, attacking, splitting, none
 
   // let hand = hands[0];
   // hand.fingers = 2;
@@ -36,25 +35,18 @@ export default function Game(){
           isOnSplit: false,
           canBeAttacked: false,
           canBeSplit: false,
-          onModeClick: function(clickedHand){
-            // if hand is already selected, deselect it
-            console.log(playerTurn);
+          onHandClick: function(clickedHand, hands, playerTurn, prevHands){
+            // DESELECT: if hand is already selected, return to previous state
             if(this.selected){
-              console.log(prevHands);
-              setHands(prevHands);
+              setHands([...prevHands]);
             }
             // ATTACK MODE: selecting which hand to attack with
             else if(this.isOnAttack){
-              // if hand is already selected, deselect it
               if(clickedHand.selectable){
                 if(clickedHand.selected){
                   clickedHand.selected = false;
                 }
                 else{
-                  // store current state in prevHands
-                  setPrevHands(hands);
-                  // console.log(hands);
-
                   // if clicked hand is not selected, select it
                   let updatedHands = [...hands];
                   updatedHands[this.key].selected = true;
@@ -63,18 +55,17 @@ export default function Game(){
                   // making all other hands that aren't the player's selectable to attack
                   for(let i = 0; i < hands.length; i++){
                     // for immutability (create a copy, modify it, then update the state with copy)
-                    if(!updatedHands[i].selectable && updatedHands[i].fingers != 0) {updatedHands[i].canBeAttacked = true;}
+                    if(!updatedHands[i].selectable && updatedHands[i].fingers != 0) updatedHands[i].canBeAttacked = true;
                     updatedHands[i].selectable = !updatedHands[i].selectable;
                   }
                   setHands(updatedHands);
-
                 }
               }
               else{
                 // this should do nothing
                 clickedHand.selected = false;
               }
-              // no hand is on attack anymore
+              // ATTACK MODE DONE: no hand is on attack anymore
               let updatedHands = [...hands];
               for(let i = 0; i < hands.length; i++){
                 updatedHands[i].isOnAttack = false;
@@ -136,8 +127,6 @@ export default function Game(){
                   
                   // update hand state
                   setHands(updatedHands);
-
-                  // create a state of hands for the case of 2 : 0 --> 0 : 2
                 }
               }
             }
@@ -177,11 +166,9 @@ export default function Game(){
     }
     setHands(hands);
   }
-
   useEffect(() => {
     initializeHands();
   }, [])
-
 
   // button functionalities
   function attack(playerTurn){
@@ -192,15 +179,14 @@ export default function Game(){
     // select player's hands based on playerTurn
     for(let i = playerTurn * 2; i < playerTurn*2 + 2; i++){
       let updatedHands = [...hands];
+      // If the hand isn't out of the game
       if(hands[i].fingers !== 0){
         hands[i].selectable = true;
         hands[i].isOnAttack = true;
       }
       setHands(updatedHands);
+      setPrevHands(deepCopy(updatedHands));
     }
-    // select hand to attack
-
-    // result of attack
   }
 
   function split(){
@@ -227,7 +213,6 @@ export default function Game(){
   function done(hands){
     if(hands){
       // reset hands
-
       let updatedHands = [...hands];
       for(let i = 0; i < hands.length; i++){
         updatedHands[i].selectable = false;
@@ -238,43 +223,16 @@ export default function Game(){
         updatedHands[i].isOnAttack = false;
       }
       setHands(updatedHands);
-      // setPrevHands(updatedHands);
       setShowDone(false);
       setShowAttack(true);
       setShowSplit(true);
       setShowBack(false);
+      setPrevHands(deepCopy(updatedHands));
       setPlayerTurn(prevTurn => prevTurn === 0 ? 1 : 0);
     }
   }
 
   // FUNCTIONS
-
-  function handleNoneMode(clickedHand, hands){
-    if(clickedHand.selectable){
-      // if hand is selected, deselect it
-      if(clickedHand.selected){
-        clickedHand.selected = false;
-      }
-      else{
-        // if clicked hand is not selected, select it
-        clickedHand.selected = true;
-        // attack mode 
-        // making all other hands that aren't the player's selectable to attack
-        for(let i = 0; i < hands.length; i++){
-          // for immutability (create a copy, modify it, then update the state with copy)
-          let updatedHands = [...hands];
-          updatedHands[i].selectable = !hands[i].selectable;
-          setHands(updatedHands);
-        }
-        setMode(1);
-      }
-    } 
-    else{
-      // this should do nothing
-      clickedHand.selected = false;
-    }
-  }
-
   function handleAttackingMode(clickedHand, hands){
     let selectedHand;
     // find selected hand, then add
@@ -293,7 +251,6 @@ export default function Game(){
 
   function calculateWinner(hands){
     let winner = -1;
-    let winningHands = hands.reduce
     for(let i = 0; i < hands.length - 1; i += 2){
       if(hands[i].fingers === 0 && hands[i + 1].fingers === 0){
         console.log('WINNER');
@@ -307,10 +264,7 @@ export default function Game(){
 
   function isValidSplit(playerTurn, hand1, hand2, prevHands){
     let prevPlayerHands = prevHands.slice(playerTurn * 2, playerTurn * 2 + 2);
-    if((hand1 === 0 && prevPlayerHands[1] === 0) || (hand2 === 0 && prevPlayerHands[0] === 0)){
-      return false;
-    }
-    return true;
+    return !(hand1 === 0 && prevPlayerHands[1] === 0) && !(hand2 === 0 && prevPlayerHands[0] === 0);
   }
 
   function checkDeadHand(hand){
@@ -320,30 +274,34 @@ export default function Game(){
     return hand;
   }
 
+  function deepCopy(obj){
+    return JSON.parse(JSON.stringify(obj));
+  } 
+
   // status
   let status = winner ? "Winner: " + winner : "Next player: " + (playerTurn === 0 ? "1" : "0");
 
   // LOADING GAME
-  if (hands.length === 0) 
-    return (
-      <div>Loading...</div>
-    );
+  if (hands.length === 0) return <div>Loading...</div>;
   // game
   return (
-    <div className="game">
-      <div className="status">{status}</div>
-      <div className="playerHands">
-        <Player playerNumber={0} hands={hands}/>
-        <Player playerNumber={1} hands={hands}/>
+    <GameContext.Provider value={prevHands}>
+      <div className="game">
+        <div className="status">{status}</div>
+        <div className="playerHands">
+          <Player playerNumber={0} hands={hands} playerTurn={playerTurn}/>
+          <Player playerNumber={1} hands={hands} playerTurn={playerTurn}/>
+        </div>
+        <div className="options">
+          {showAttack && <button className="attack" id="attack" onClick={() => attack(playerTurn)}>Attack</button>}
+          {showSplit && <button className="split" id="split" onClick={split}>Split</button>}
+          {showBack && <button className="back" id="back" onClick={back}>Back</button>}
+          {showDone && <button className = "done" id="done" onClick={() => done(hands)}>Done</button>}
+          {showWinner && <div className="winner">WINNER: {winner}</div>}
+          <button className="test" onClick={() => console.log(prevHands)}>Previous Hands</button>
+        </div>
+        <div>Player Turn: {playerTurn}</div>
       </div>
-      <div className="options">
-        {showAttack && <button className="attack" id="attack" onClick={() => attack(playerTurn)}>Attack</button>}
-        {showSplit && <button className="split" id="split" onClick={split}>Split</button>}
-        {showBack && <button className="back" id="back" onClick={back}>Back</button>}
-        {showDone && <button className = "done" id="done" onClick={() => done(hands)}>Done</button>}
-        {showWinner && <div className="winner">WINNER: {winner}</div>}
-      </div>
-      <div>Player Turn: {playerTurn}</div>
-    </div>
+    </GameContext.Provider>
   );
 }
