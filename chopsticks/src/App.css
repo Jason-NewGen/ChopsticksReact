@@ -1,15 +1,58 @@
 /*    */
-.hand {
-  width: 100px;
-  height: 100px;
+.game{
+  display: flex;
+  flex-direction: column;
+  height: 80vh;
+  border: 1px solid black;
+  margin-left: 150px;
+  margin-right: 150px;
+  margin-top: 100px; 
+  justify-content: center;
+}
+
+.status{
+  display: flex;
+  margin-top: 20px;
+  order: 0;
+  margin-bottom: 50px;
+  justify-content: center;
 }
 
 .player{
   display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.player div:last-child{
+  margin-right: 0px;
 }
 
-.game{
-  display: block;
+.playerHands{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0px;
+}
+
+.hand {
+  width: 15vh;
+  height: 15vh;
+  display: flex;
+  align-items: center;
+  margin-right: 10px;
+  justify-content: center;
+  
+}
+
+.options{
+  display: flex;
+  justify-content: center;
+}
+
+.playerTurn{
+  display: flex;
+  justify-content: center;
 }
 
 .attack{
