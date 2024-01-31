@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {useRef} from 'react';
-import {GameContext} from '../App.js';
+import {GameContext} from './Game.js';
 // logic for chopsticks game
 
 // hand component for chopsticks

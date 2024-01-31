@@ -1,4 +1,4 @@
-/*    */
+/*  Game  */
 .game{
   display: flex;
   flex-direction: column;
@@ -7,14 +7,20 @@
   margin-left: 150px;
   margin-right: 150px;
   margin-top: 100px; 
+  padding: 0px;
+}
+
+.logo{
+  display: flex;
   justify-content: center;
+  height: 15%;
+  width: auto;
 }
 
 .status{
   display: flex;
-  margin-top: 20px;
   order: 0;
-  margin-bottom: 50px;
+  margin-bottom: 0px;
   justify-content: center;
 }
 
@@ -24,6 +30,7 @@
   margin-top: 20px;
   margin-bottom: 20px;
 }
+
 .player div:last-child{
   margin-right: 0px;
 }
@@ -48,6 +55,7 @@
 .options{
   display: flex;
   justify-content: center;
+  padding: 30px;
 }
 
 .playerTurn{
@@ -56,19 +64,50 @@
 }
 
 .attack{
-  display: show;
+  display: flex;
+  border: none;
+  margin: 15px;
+  background-color: #f55d42;
+}
+
+.attack:hover{
+  background-color: #f57542;
 }
 
 .split{
-display: show;
+  display: flex;
+  border: none;
+  margin: 15px;
+  background-color: #f5d742;
+}
+
+.split:hover{
+  background-color: #f5ec42;
 }
 
 .back{
-  display: show;
+  display: flex;
+  margin: 15px;
+  background-color: transparent;
+  transform: rotate(180deg);
+  border: solid;
+  border-color: transparent;
+}
+
+.back:hover{
+  border: solid;
+  border-color: black;
 }
 
 .done{
-  display: show;
+  display: flex;
+  margin: 15px;
+  border: none;
+  background-color: #328ba8;
+}
+
+.done:hover{
+  background-color: #329da8;
 }
 
 .blue{
