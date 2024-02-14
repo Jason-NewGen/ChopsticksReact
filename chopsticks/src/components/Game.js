@@ -1,6 +1,7 @@
 import '../App.css';
 import React, { createContext, useState, useEffect } from 'react';
 import Player from './Player.js';
+import CustomDialog from './CustomDialog.js';
 import name from './StartMenu.js';
 // import options from settings
 
@@ -491,6 +492,12 @@ export default function Game(){
         <div className="playerTurn">Player Turn: {playerTurn + 1}</div>
         {/*<button onClick={() => console.log(hands)}>Previous Hands</button>*/}
       </div>
+      <CustomDialog
+        open={Boolean(gameOver)}
+        title="Game Over"
+        contentText="Would you like to play again?"
+        handleContinue={() => setGameOver(false)}
+      />
     </GameContext.Provider>
   );
 }

@@ -118,6 +118,14 @@
   background-color: yellow;
 }
 
+/* Start Menu */
+
+.startmenu{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 /*    */
 .App {
   text-align: center;
