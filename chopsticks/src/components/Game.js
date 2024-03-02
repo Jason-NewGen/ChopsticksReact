@@ -2,7 +2,6 @@ import '../App.css';
 import React, { createContext, useState, useEffect } from 'react';
 import Player from './Player.js';
 import CustomDialog from './CustomDialog.js';
-import name from './StartMenu.js';
 // import options from settings
 
 export const GameContext = createContext();
@@ -41,6 +40,7 @@ export default function Game(){
           canBeSplit: false,
           onHandClick: function(hands, playerTurn, prevHands){
             // DESELECT: if hand is already selected, return to previous state
+            console.log({hands, playerTurn, prevHands});
             if(this.selected){
               setShowDone(false);
               setHands(deepCopy(prevHands));
@@ -60,10 +60,6 @@ export default function Game(){
                   updatedHands[i].selectable = !updatedHands[i].selectable;
                 }
                 setHands(updatedHands);
-              }
-              else{
-                // this should do nothing
-                this.selected = false;
               }
               // ATTACK MODE DONE: no hand is on attack anymore
               let updatedHands = [...hands];
@@ -479,8 +475,8 @@ export default function Game(){
       <div id="logo" className="logo" src=""><img src="/assets/standard_blackChopsticks.png"></img></div>
         <div className="status">{status}</div>
         <div className="playerHands">
-          <Player playerNumber={0} hands={hands} playerTurn={playerTurn}/>
-          <Player playerNumber={1} hands={hands} playerTurn={playerTurn}/>
+          <Player playerNumber={0} hands={hands} playerTurn={playerTurn} prevHands={prevHands}/>
+          <Player playerNumber={1} hands={hands} playerTurn={playerTurn} prevHands={prevHands}/>
         </div>
         <div className="options">
           {showAttack && <button className="attack" id="attack" onClick={() => attack(playerTurn)}>Attack</button>}

@@ -30,7 +30,7 @@ export default function InitGame({setRoom, setOrientation, setPlayers}) {
                         setPlayers(r?.players);
                         setOrientation("two");
                         setRoomDialogOpen(false);
-                    })
+                    });
                 }}
             >
                 <TextField

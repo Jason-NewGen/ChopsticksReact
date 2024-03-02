@@ -92,8 +92,15 @@ io.on('connection', (socket) => {
 
         // emit an opponent joined event to the room to notify the players in the room
         socket.to(args.roomId).emit('opponentJoined', roomUpdate);
-    })
-})
+    });
+
+    // when a player ends their turn
+    socket.on('move', (data) => {
+        console.log(data);
+        socket.to(data.room).emit('move', data.move);
+    });
+
+});
 
 server.listen(port, () => {
     console.log(`listening on *:${port}`);

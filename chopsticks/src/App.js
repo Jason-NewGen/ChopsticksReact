@@ -34,9 +34,9 @@ export default function App(){
     // socket.emit("username", username);
     
     socket.on("opponentJoined", (roomData) => {
-      console.log("opponent joined", roomData);
+      console.log("room data", roomData);
       setPlayers(roomData.players);
-    })
+    });
   }, []);
 
 // RETURN HTML

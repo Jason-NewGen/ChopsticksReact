@@ -2,8 +2,10 @@
 import socket from '../socket.js';
 import CustomDialog from './CustomDialog.js';
 import Game from './Game.js';
+import OnlineGame from './OnlineGame.js';
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import '../App.css';
+import InitGame from '../InitGame.js';
 import { Container, TextField } from "@mui/material";
 
 export default function StartMenu(){
@@ -32,6 +34,25 @@ export default function StartMenu(){
     function launchSinglePlayerGame(){
         return (
             <Game />
+        )
+    }
+
+    function launchMultiplayerGame(){
+        return (
+            room ? (
+                <OnlineGame 
+                    room={room}
+                    orientation={orientation}
+                    players={players}
+                    cleanup={cleanup}
+                />
+            ) : (
+                <InitGame 
+                    setRoom={setRoom}
+                    setOrientation={setOrientation}
+                    setPlayers={setPlayers}
+                />
+            )
         )
     }
 
@@ -101,6 +122,7 @@ export default function StartMenu(){
                 </div>
             </div>)}
             {singlePlayerToggle ? launchSinglePlayerGame() : null}
+            {multiPlayerToggle ? launchMultiplayerGame(players, room, orientation, cleanup) : null}
         </div>
     )
 }

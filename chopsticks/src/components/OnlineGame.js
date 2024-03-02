@@ -1,10 +1,24 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, createContext } from 'react';
 import '../App.css';
 import Player from './Player.js';
 import CustomDialog from './CustomDialog.js';
+import socket from '../socket.js';
+import {
+    Card,
+    CardContent,
+    List,
+    ListItem,
+    ListItemText,
+    ListSubheader,
+    Stack,
+    Typography,
+    Box,
+  } from "@mui/material";
 
-export default function OnlineGame([players, room, orientation, cleanup]){
-      // game states and constants
+export const GameContext = createContext();
+
+export default function OnlineGame( {room, orientation, players, cleanup}){
+// game states and constants
   const [showDone, setShowDone] = useState(false);
   const [showAttack, setShowAttack] = useState(true);
   const [showSplit, setShowSplit] = useState(true);
@@ -17,6 +31,8 @@ export default function OnlineGame([players, room, orientation, cleanup]){
   const [winner, setWinner] = useState(null);
   const [allowHandSwitchRule, setAllowHandSwitchRule] = useState(false);
 
+  // passed in props
+
   // let hand = hands[0];
   // hand.fingers = 2;
   // setHands([ hand, ...hands.slice(1) ]);
@@ -26,7 +42,7 @@ export default function OnlineGame([players, room, orientation, cleanup]){
       hands.push(
         {
           key: i,
-          fingers: 1,
+          fingers: 2,
           selected: false,
           selectable: false, 
           isOnAttack: false,
@@ -35,6 +51,7 @@ export default function OnlineGame([players, room, orientation, cleanup]){
           canBeSplit: false,
           onHandClick: function(hands, playerTurn, prevHands){
             // DESELECT: if hand is already selected, return to previous state
+            console.log({hands, playerTurn, prevHands});
             if(this.selected){
               setShowDone(false);
               setHands(deepCopy(prevHands));
@@ -91,6 +108,14 @@ export default function OnlineGame([players, room, orientation, cleanup]){
                 setShowAttack(true);
                 setShowSplit(true);
                 setShowBack(false);
+
+                // send end of turn to server
+                // first set up move data to send to server
+                let moveData = {
+                    hands: updatedHands,
+                    playerTurn: playerTurn
+                }
+                socket.emit('move', {room: room, move: moveData});
               }
               else{
                 // this should do nothing
@@ -248,6 +273,14 @@ export default function OnlineGame([players, room, orientation, cleanup]){
         setShowBack(false);
         setPrevHands(deepCopy(updatedHands));
         setPlayerTurn(prevTurn => prevTurn === 0 ? 1 : 0);
+
+        // send end of turn to server
+        // first set up move data to send to server
+        let moveData = {
+            hands: deepCopy(updatedHands),
+            playerTurn: playerTurn
+        }
+        socket.emit('move', {room: room, move: moveData});
       }
     }
     else if(hands){
@@ -272,134 +305,140 @@ export default function OnlineGame([players, room, orientation, cleanup]){
       setPlayerTurn(prevTurn => prevTurn === 0 ? 1 : 0);
     }
   }
-  // function onHandClick(hands, playerTurn, prevHands){
-  //   // DESELECT: if hand is already selected, return to previous state
-  //   if(this.selected){
-  //     setHands([...prevHands]);
-  //   }
-  //   // ATTACK MODE: selecting which hand to attack with
-  //   else if(this.isOnAttack){
-  //     if(this.selectable){
-  //       // if clicked hand is not selected, select it
-  //       let updatedHands = [...hands];
-  //       updatedHands[this.key].selected = true;
 
-  //       // attack mode 
-  //       // making all other hands that aren't the player's selectable to attack
-  //       for(let i = 0; i < hands.length; i++){
-  //         // for immutability (create a copy, modify it, then update the state with copy)
-  //         if(!updatedHands[i].selectable && updatedHands[i].fingers != 0) updatedHands[i].canBeAttacked = true;
-  //         updatedHands[i].selectable = !updatedHands[i].selectable;
-  //       }
-  //       setHands(updatedHands);
-  //     }
-  //     else{
-  //       // this should do nothing
-  //       this.selected = false;
-  //     }
-  //     // ATTACK MODE DONE: no hand is on attack anymore
-  //     let updatedHands = [...hands];
-  //     for(let i = 0; i < hands.length; i++){
-  //       updatedHands[i].isOnAttack = false;
-  //     }
-  //     setHands(updatedHands);
-  //   }
-  //   // ATTACKING MODE: selecting which hand to attack
-  //   else if(this.canBeAttacked){
-  //     if(this.selectable){
+  let onHandClick = (hand, hands, playerTurn, prevHands) => {
+    // DESELECT: if hand is already selected, return to previous state
+    if(hand.selected){
+      setShowDone(false);
+      setHands(prevHands);
+    }
+    // ATTACK MODE: selecting which hand to attack with
+    else if(hand.isOnAttack){
+      if(hand.selectable){
+        // if clicked hand is not selected, select it
+        let updatedHands = [...hands];
+        updatedHands[hand.key].selected = true;
 
-  //       // find selected (attacking) hand, then add to selected (attacked) hand
-  //       let selectedHand;
-  //       for(let i = 0; i < hands.length; i++){
-  //         if(hands[i].selected) selectedHand = hands[i];
-  //       }
-  //       let updatedHands = [...hands];
-  //       updatedHands[this.key].fingers = this.fingers + selectedHand.fingers;
-  //       updatedHands[this.key] = checkDeadHand(this);
+        // attack mode
+        // making all other hands that aren't the player's selectable to attack
+        for(let i = 0; i < hands.length; i++){
+          // for immutability (create a copy, modify it, then update the state with copy)
+          if(!updatedHands[i].selectable && updatedHands[i].fingers != 0) updatedHands[i].canBeAttacked = true;
+          updatedHands[i].selectable = !updatedHands[i].selectable;
+        }
+        setHands(updatedHands);
+      }
+      // ATTACK MODE DONE: no hand is on attack anymore
+      let updatedHands = [...hands];
+      for(let i = 0; i < hands.length; i++){
+        updatedHands[i].isOnAttack = false;
+      }
+      setHands(updatedHands);
+      console.log(updatedHands);
+    }
+    // ATTACKING MODE: selecting which hand to attack
+    else if(hand.canBeAttacked){
+      if(hand.selectable){
+        // find selected attacking hand, then add to selected attacked hand
+        let selectedHand;
+        for(let i = 0; i < hands.length; i++){
+          if(hands[i].selected) selectedHand = hands[i]; 
+        }
+        let updatedHands = [...hands];
+        updatedHands[hand.key].fingers = hand.fingers + selectedHand.fingers;
+        updatedHands[hand.key] = checkDeadHand(hand);
 
-  //       // TURN DONE: check for winner, reset all hands and atlernate player turn
-  //       calculateWinner(updatedHands);
-  //       for(let i = 0; i < hands.length; i++){
-  //         updatedHands[i].selectable = false;
-  //         updatedHands[i].selected = false;
-  //         updatedHands[i].canBeAttacked = false;
-  //       }
-  //       setHands(updatedHands);
-  //       setPlayerTurn(prevTurn => prevTurn === 0 ? 1 : 0);
-  //       setShowAttack(true);
-  //       setShowSplit(true);
-  //       setShowBack(false);
-  //     }
-  //     else{
-  //       // this should do nothing
-  //       this.selected = false;
-  //     }
-  //   }
-  //   else if(this.isOnSplit){
-  //     if(this.selectable){
-  //       // if hand is selected, deselect it
-  //       if(this.selected){
-  //         this.selected = false;
-  //       }
-  //       else{
-  //         // SPLIT MODE
+        // TURN DONE: check for winner, reset all hands and alternate player turn
+        calculateWinner(updatedHands);
+        for(let i = 0; i < hands.length; i++){
+          updatedHands[i].selectable = false;
+          updatedHands[i].selected = false;
+          updatedHands[i].canBeAttacked = false;
+        }
+        setHands(updatedHands);
+        setPlayerTurn(prevTurn => prevTurn === 0 ? 1 : 0);
+        setShowAttack(true);
+        setShowSplit(true);
+        setShowBack(false);
 
-  //         // if hand is not selected, select it
-  //         let updatedHands = [...hands];
-  //         updatedHands[this.key].selected = true;
+        // send end of turn to server
+        // first set up move data to send to server
+        let moveData = {
+          hands: updatedHands,
+          playerTurn: playerTurn
+        }
+        socket.emit('move', {room: room, move: moveData});
+      }
+    }
+    else if(hand.isOnSplit){
+      if(hand.selectable){
+        // if hand is selecrted, deselect it
+        if(hand.selected){
+          hand.selected = false;
+        }
+        // SPLIT MODE
+        else{
+          // if hand is not selected, select it
+          let updatedHands = [...hands];
+          updatedHands[hand.key].selected = true;
 
-  //         // make the hand to be split selectable
-  //         for(let i = 0; i < hands.length; i++){
-  //           if(hands[i].fingers !== -1 && (hands[i].key === playerTurn * 2 + 1 || hands[i].key === playerTurn * 2) && hands[i].key !== this.key){
-  //             updatedHands[i].selectable = true;
-  //             updatedHands[i].canBeSplit = true;
-  //             updatedHands[i].isOnSplit = false;
-  //           }
-  //         }
-          
-  //         // update hand state
-  //         setHands(updatedHands);
-  //       }
-  //     }
-  //   }
-  //   else if(this.canBeSplit){
-  //     if(this.selectable){
-  //       // let done button be shown
-  //       setShowDone(true);
+          // make the hand to be split selectable
+          for(let i = 0; i < hands.length; i++){
+            if(hands[i].fingers !== -1 && (hands[i].key === playerTurn * 2 + 1 || hands[i].key === playerTurn * 2) && hands[i].key !== hand.key){
+              updatedHands[i].selectable = true;
+              updatedHands[i].canBeSplit = true;
+              updatedHands[i].isOnSplit = false;
+            }
+          }
 
-  //       // subtract 1 from selected hand, add 1 to clicked hand
-  //       let updatedHands = [...hands];
-  //       let startFingers = updatedHands[updatedHands.find(hand => hand.selected).key].fingers // selected hand
-  //       let endFingers = updatedHands[this.key].fingers; // clicked hand
-  //       if(startFingers > 0 && endFingers >= 0 && endFingers < 4){ // selected hand is greater than 1, clicked hand is greater than or equal 0 and less than 4
-  //         endFingers = this.fingers + 1;
-  //         startFingers = updatedHands[updatedHands.find(hand => hand.selected).key].fingers - 1;
-  //         if(isValidSplit(playerTurn, startFingers, endFingers, prevHands)){ // avoid x : 0 --> 0 : x
-  //           updatedHands[this.key].fingers = this.fingers + 1;
-  //           updatedHands[updatedHands.find(hand => hand.selected).key].fingers = updatedHands[updatedHands.find(hand => hand.selected).key].fingers - 1;
-  //         }
-  //       }
-  //       setHands(updatedHands);
-  //     }
-  //   }
-  // }
+          // update hand state
+          console.log(prevHands);
+          setHands(updatedHands);
+        }
+      }
+    }
+    else if(hand.canBeSplit){
+      if(hand.selectable){
+        // let done button be shown
+        setShowDone(true);
 
-  // FUNCTIONS
-  // function handleAttackingMode(hands){
-  //   let selectedHand;
-  //   // find selected hand, then add
-  //   for(let i = 0; i < hands.length; i++){
-  //     if(hands[i].selected) selectedHand = hands[i];
-  //   }
-  //   this.fingers = this.fingers + selectedHand.fingers;
+        // subtract 1 from selected hand, add 1 to clicked hand
+        let updatedHands = [...hands];
+        let startFingers = updatedHands[updatedHands.find(hand => hand.selected).key].fingers; // selected hand
+        let endFingers = updatedHands[hand.key].fingers; // clicked hand
+        if(startFingers > 0 && endFingers >= 0 && endFingers < 4){ // selected hand is greater than 1, clicked hand is greater than or equal 0 and less than 4
+          endFingers = hand.fingers + 1;
+          startFingers = updatedHands[updatedHands.find(hand => hand.selected).key].fingers - 1;
+          if(isValidSplit(playerTurn, startFingers, endFingers, prevHands)){ // prevent going into negatives
+            updatedHands[hand.key].fingers = hand.fingers + 1;
+            updatedHands[updatedHands.find(hand => hand.selected).key].fingers = updatedHands[updatedHands.find(hand => hand.selected).key].fingers - 1;
+          }
+        }
+        setHands(updatedHands);
+      }
+    }
+  }
 
-  //   // reset all hands and atlernate player turn
-  //   for(let i = 0; i < hands.length; i++){
-  //     hands[i].selectable = false;
-  //     hands[i].selected = false;
-  //   }
-  //   setPlayerTurn(playerTurn === 0 ? 1 : 0);
-  // }
+  // update everything on the board for the OOPONENT'S side
+  const endTurn = useCallback((move) => {
+    try {
+        setHands(deepCopy(move.hands));
+        setPlayerTurn(move.playerTurn === 0 ? 1 : 0);
+        calculateWinner(move.hands);
+    }
+    catch(e){
+        console.log(e);
+    }
+  })
+
+  useEffect(() => {
+    socket.on('move', (move) => {
+        console.log(move);
+        endTurn(deepCopy(move));
+    })
+  }, [endTurn]);
+
+
 
   function calculateWinner(hands){
     let activePlayers = 0;
@@ -417,8 +456,8 @@ export default function OnlineGame([players, room, orientation, cleanup]){
         setGameOver(true);
         setShowWinner(true);
         setWinner(winner);
+        console.log("WINNER");
       }
-
   }
 
   function isValidSplit(playerTurn, hand1, hand2, prevHands){ // checks hands to prevent going into negatives on split mode
@@ -473,8 +512,8 @@ export default function OnlineGame([players, room, orientation, cleanup]){
       <div id="logo" className="logo" src=""><img src="/assets/standard_blackChopsticks.png"></img></div>
         <div className="status">{status}</div>
         <div className="playerHands">
-          <Player playerNumber={0} hands={hands} playerTurn={playerTurn}/>
-          <Player playerNumber={1} hands={hands} playerTurn={playerTurn}/>
+          <Player playerNumber={0} hands={hands} playerTurn={playerTurn} prevHands={prevHands} onHandClick={onHandClick}/>
+          <Player playerNumber={1} hands={hands} playerTurn={playerTurn} prevHands={prevHands} onHandClick={onHandClick}/>
         </div>
         <div className="options">
           {showAttack && <button className="attack" id="attack" onClick={() => attack(playerTurn)}>Attack</button>}
@@ -484,7 +523,7 @@ export default function OnlineGame([players, room, orientation, cleanup]){
           {showWinner && <div className="winner">WINNER: {winner}</div>}
         </div>
         <div className="playerTurn">Player Turn: {playerTurn + 1}</div>
-        {/*<button onClick={() => console.log(hands)}>Previous Hands</button>*/}
+        <button onClick={() => console.log(hands)}>Hands</button> 
       </div>
       <CustomDialog
         open={Boolean(gameOver)}
